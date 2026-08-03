@@ -18,25 +18,47 @@ inputs:
     description: 'The name of the service or library being tested.'
     required: false
   dotnet-tracer-version:
-    description: 'The version of Datadog .NET tracer to use (optional). Defaults to the latest release.'
+    description: 'The version of Datadog .NET tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
+    default: '3.49.0'
   java-tracer-version:
-    description: 'The version of Datadog Java tracer to use (optional). Defaults to the latest release.'
+    description: 'The version of Datadog Java tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
+    default: '1.64.0'
   js-tracer-version:
-    description: 'The version of Datadog JS tracer to use (optional). Defaults to the latest release.'
+    description: 'The version of Datadog JS tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
+    default: '6.3.0'
   python-tracer-version:
-    description: 'The version of Datadog Python tracer to use (optional). Defaults to the latest release.'
+    description: 'The version of Datadog Python tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
+    default: '4.11.0'
+  python-coverage-version:
+    description: 'The version of the Python coverage package to use (optional). Defaults to the version pinned by this action release.'
+    required: false
+    default: '7.15.1'
   ruby-tracer-version:
-    description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the latest release.'
+    description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the version pinned by this action release.'
     required: false
+    default: '1.34.0'
   go-tracer-version:
-    description: 'The version of Orchestrion automatic compile-time instrumentation of Go code (https://github.com/datadog/orchestrion) to use (optional). Defaults to the latest release.'
+    description: 'The version of Orchestrion automatic compile-time instrumentation of Go code (https://github.com/datadog/orchestrion) to use (optional). Defaults to the version pinned by this action release.'
+    required: false
+    default: 'v1.11.0'
+  go-module-dir:
+    description: 'Path to the Go module root directory to instrument (optional). Use this when the repository contains multiple Go modules or the Go module is not in the workspace root.'
     required: false
   java-instrumented-build-system:
     description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
+    required: false
+  java-tracer-repository-url:
+    description: 'Base URL of a Maven repository (or proxy/mirror) used to download the Java tracer JAR and its sha256. The path under the base must follow the standard Maven layout for `com.datadoghq:dd-java-agent`. Defaults to Maven Central.'
+    required: false
+  java-tracer-repository-auth-header:
+    description: 'Optional HTTP header used to authenticate against `java-tracer-repository-url`, provided as a complete `Name: Value` string (e.g. `Authorization: Bearer <token>`). Only used when `java-tracer-repository-url` is set. Redirects are followed by default; be aware that the header will be re-sent on each redirect hop with the following caveats: `curl` strips `Authorization` and `Cookie` headers on cross-origin redirects (different host, port, or scheme), but `wget` does not strip any header. Custom header names (e.g. `X-API-Key`, `X-JFrog-Art-Api`) are never stripped by either tool — prefer the `Authorization: …` form when possible. Set `java-tracer-auth-disable-redirects` to opt out of redirect following entirely.'
+    required: false
+  java-tracer-auth-disable-redirects:
+    description: 'When set to any non-empty value, disables HTTP redirect following for Java tracer downloads that send `java-tracer-repository-auth-header`. Use this if your repository never redirects and you want to guarantee the auth header is only ever sent to the configured `java-tracer-repository-url` host.'
     required: false
   cache:
     description: 'Enable caching (optional). Defaults to true.'
@@ -69,8 +91,8 @@ runs:
         echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
       shell: bash
       env:
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v11.sh
-        INSTALLATION_SCRIPT_CHECKSUM: fc64c45fd4b45b4b01773c58a3a116bef212dc4095508a6e27e19e50e901bd55
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v15.sh
+        INSTALLATION_SCRIPT_CHECKSUM: e64a4a45e0b171f4294b9f949f7fc99946192f952a2d463c61fad3cb8b956a58
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Get Go cache directories
@@ -149,9 +171,14 @@ runs:
         DD_SET_TRACER_VERSION_JAVA: ${{ inputs.java-tracer-version }}
         DD_SET_TRACER_VERSION_JS: ${{ inputs.js-tracer-version }}
         DD_SET_TRACER_VERSION_PYTHON: ${{ inputs.python-tracer-version }}
+        DD_SET_COVERAGE_VERSION_PYTHON: ${{ inputs.python-coverage-version }}
         DD_SET_TRACER_VERSION_RUBY: ${{ inputs.ruby-tracer-version }}
         DD_SET_TRACER_VERSION_GO: ${{ inputs.go-tracer-version }}
+        DD_CIVISIBILITY_GO_MODULE_DIR: ${{ inputs.go-module-dir }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
+        DD_SET_TRACER_REPOSITORY_URL_JAVA: ${{ inputs.java-tracer-repository-url }}
+        DD_SET_AUTH_HEADER_JAVA: ${{ inputs.java-tracer-repository-auth-header }}
+        DD_SET_AUTH_HEADER_JAVA_DISABLE_REDIRECTS: ${{ inputs.java-tracer-auth-disable-redirects }}
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"
@@ -203,4 +230,3 @@ runs:
           rm -f $GITHUB_STEP_SUMMARY
         fi
       shell: bash
-
